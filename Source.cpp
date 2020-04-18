@@ -9,6 +9,7 @@
 #define WINDOW_WIDTH (800)
 #define WINDOW_HEIGHT (600)
 
+//Tells VS that these will be functions that I will define at some point in the future
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow* window);
 
@@ -24,7 +25,7 @@ int main()
 	//Use the core profile of OpenGL
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-
+	//Creates a pointer to a window object with GLFW
 	GLFWwindow* window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "LearnOpenGL", NULL, NULL);
 	
 	//Recognizes if the window didn't generate properly. If it didn't, we clean up GLFW and return an error.
@@ -48,11 +49,12 @@ int main()
 	glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
 
 	//References our program to link OpenGL with the instructions on what to do in the event of a window resize 
-	//glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
 	//Event loop. This contains what the program should do every frame.
 	while (!glfwWindowShouldClose(window))
 	{
+		//Processes any input that has happened since the last frame
 		processInput(window);
 
 		//Sets the clear color (i.e. the color that is written over everything at the beginning of a new frame render).
