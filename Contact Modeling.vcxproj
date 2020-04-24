@@ -23,6 +23,7 @@
     <ProjectGuid>{9721491A-094F-409F-AC7F-16C8C1AD151B}</ProjectGuid>
     <RootNamespace>ContactModeling</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>Draw Triangle</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
