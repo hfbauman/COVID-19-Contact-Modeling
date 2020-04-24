@@ -118,9 +118,12 @@ int main()
 
 	//Defines the vertex data that I'd like to use to make a triangle
 	float verticies[] = {
-		-0.5f, -0.5f, 0.0f, // left  
-		 0.5f, -0.5f, 0.0f, // right 
-		 0.0f,  0.5f, 0.0f  // top 
+		 0.0f, 0.0f, 0.0f, // center
+		 0.0f, 1.0, 0.0f, // top 
+		 1.0f, 0.0f, 0.0f,  // top
+		 0.0f, -1.0f, 0.0f, //bottom
+		 -1.0f, 0.0f, 0.0f, //left
+		 0.0f, 1.0, 0.0f // top 
 	};
 
 	//Create a spot in memory for a Vertex Array Object. This will bind together all the calls necessary to send our data to the GPU and interpret it, so that it's easier to call later in the program
@@ -172,7 +175,7 @@ int main()
 		glBindVertexArray(VAO);
 
 		//Draw the triangle. Yay!
-		glDrawArrays(GL_TRIANGLES, 0, 3);
+		glDrawArrays(GL_TRIANGLE_FAN, 0, sizeof(verticies)/3);
 
 		//Finished with rendering, display the image on the screen.
 		glfwSwapBuffers(window);
