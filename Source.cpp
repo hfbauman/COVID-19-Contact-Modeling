@@ -8,10 +8,12 @@
 //Compile-time replacements:
 #define WINDOW_WIDTH (800)
 #define WINDOW_HEIGHT (600)
+#define NUM_CIRCLE_VERTICES (100)
 
 //Tells VS that these will be functions that I will define at some point in the future
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow* window);
+void generateCircle(int num_vertices, int VBO);
 
 //Source code for the vertex shader. This program is written for OpenGL and describes how to transform the vertex data to put it on the screen
 const char *vertexShaderSource = "#version 330 core\n"
@@ -116,15 +118,22 @@ int main()
 	glDeleteShader(fragmentShader);
 
 
-	//Defines the vertex data that I'd like to use to make a triangle
-	float verticies[] = {
-		 0.0f, 0.0f, 0.0f, // center
-		 0.0f, 1.0, 0.0f, // top 
-		 1.0f, 0.0f, 0.0f,  // top
-		 0.0f, -1.0f, 0.0f, //bottom
-		 -1.0f, 0.0f, 0.0f, //left
-		 0.0f, 1.0, 0.0f // top 
-	};
+	//Defines the vertex data that I'd like to use
+	float vertices[(NUM_CIRCLE_VERTICES+2) * 3];
+
+	vertices[0] = 0.0;
+	vertices[1] = 0.0;
+	vertices[2] = 0.0;
+
+	float angle;
+
+	for (int i = 1; i < sizeof(vertices) / sizeof(vertices[0]) / 3 + 1;i++)
+	{
+		angle = (i - 1) *(2 * 3.14159) / NUM_CIRCLE_VERTICES;
+		vertices[3 * i] = sin(angle);
+		vertices[3 * i + 1] = cos(angle);
+		vertices[3 * i + 2] = 0.0;
+	}
 
 	//Create a spot in memory for a Vertex Array Object. This will bind together all the calls necessary to send our data to the GPU and interpret it, so that it's easier to call later in the program
 	unsigned int VAO;
@@ -140,11 +149,13 @@ int main()
 	//Sets the Vertex Array Object, so that further calls describing the buffer and interpretation are stored within that instance.
 	glBindVertexArray(VAO);
 
+	//generateCircle(4, VBO);
+
 	//Binds the GL array buffer to the buffer object that we just created
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 
-	//Sends the vertex data to the data buffer and tells it that we won't be changing this data often (which affects how the graphics card stores the data
-	glBufferData(GL_ARRAY_BUFFER, sizeof(verticies), verticies, GL_STATIC_DRAW);
+	//Sends the vertex data to the data buffer and tells it that we won't be changing this data often (which affects how the graphics card stores the data)
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
 	//Defines how to process the data we sent in
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
@@ -174,8 +185,8 @@ int main()
 		//Tells OpenGL how to get the data properly transmitted
 		glBindVertexArray(VAO);
 
-		//Draw the triangle. Yay!
-		glDrawArrays(GL_TRIANGLE_FAN, 0, sizeof(verticies)/3);
+		//Draw the circle. Yay!
+		glDrawArrays(GL_TRIANGLE_FAN, 0, NUM_CIRCLE_VERTICES+2);
 
 		//Finished with rendering, display the image on the screen.
 		glfwSwapBuffers(window);
@@ -200,4 +211,40 @@ void processInput(GLFWwindow* window)
 	//Window closes on the press of the escape key
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
+}
+
+//This method will generate a ring of vertices to make a circle
+void generateCircle(int num_vertices, int VBO)
+{
+	float angle;
+	int num_entries = (num_vertices + 2) * 3;
+
+	//A dynamically defined array
+	float *vertices = new float[num_entries];
+
+	//The center of the circle. As I intend to move it around with translations in the vertex shader, I'll leave it at (0,0,0) here
+	vertices[0] = 0.0;
+	vertices[1] = 0.0;
+	vertices[2] = 0.0;
+
+	for (int i = 1; i < num_entries;i++)
+	{
+		angle = float(i-1) * 3.14159 / 2;
+		vertices[3*i] = sin(angle);
+		vertices[3*i + 1] = cos(angle);
+		vertices[3*i + 2] = 0.0;
+	}
+
+	//for (int i = 0;i < num_entries;i++) {
+		//std::cout << vertices[i]<<'\n';
+	//}
+
+	glBindBuffer(GL_ARRAY_BUFFER,VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+	//Delete the array from memory, since I no longer need it
+	delete[] vertices;
+
+	//Unbind the VBO
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
