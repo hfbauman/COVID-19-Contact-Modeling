@@ -13,14 +13,16 @@
 //Tells VS that these will be functions that I will define at some point in the future
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow* window);
-void generateCircle(int num_vertices, int VBO);
 
 //Source code for the vertex shader. This program is written for OpenGL and describes how to transform the vertex data to put it on the screen
 const char *vertexShaderSource = "#version 330 core\n"
 "layout (location=0) in vec3 position;\n" //Specifies that the position vector should be put in location 0
+
+"uniform mat4 mvMatrix;"
 "void main()\n"
 "{\n"
-"	gl_Position=vec4(position.x,position.y,position.z,1.0);\n"
+"	vec4 screen_position=mvMatrix*vec4(position,1.0);"
+"	gl_Position=screen_position;\n"
 "}\0";
 
 //Source code for the fragment shader. This program is also written for OpenGL and describes how to color shapes that we are passing in. It colors everything the same color.
@@ -119,14 +121,19 @@ int main()
 
 
 	//Defines the vertex data that I'd like to use
+	
+	//The vertices will have 2 more than the number of divisions--1 for the center and 1 to complete the circle
 	float vertices[(NUM_CIRCLE_VERTICES+2) * 3];
 
+	//Sets the center to be (0,0,0) so that I can easily use the shader to move the object around
 	vertices[0] = 0.0;
 	vertices[1] = 0.0;
 	vertices[2] = 0.0;
 
+	//The angle from (0,1,0)
 	float angle;
 
+	//Generates vertices around the circle
 	for (int i = 1; i < sizeof(vertices) / sizeof(vertices[0]) / 3 + 1;i++)
 	{
 		angle = (i - 1) *(2 * 3.14159) / NUM_CIRCLE_VERTICES;
@@ -134,6 +141,15 @@ int main()
 		vertices[3 * i + 1] = cos(angle);
 		vertices[3 * i + 2] = 0.0;
 	}
+
+	//Generate the model matrix for movement around the screen (i.e. the coordinates of where my object origin should reside)
+	float model_matrix[4][4] = { {0.0,0.0,0.0,0.0}, {0.0,0.0,0.0,0.0}, {0.0,0.0,0.0,0.0},{0.0,0.0,0.0,1.0} };
+	model_matrix[0][0] = 0.5;//Scaling in x
+	model_matrix[1][1] = 0.5;//Scaling in y
+	model_matrix[2][2] = 0.5;//Scaling in z
+	model_matrix[3][0] = 0.5;//Translate in x
+	model_matrix[3][1] = 0.0;//Translate in y
+	model_matrix[3][2] = 0.0;//Translate in z
 
 	//Create a spot in memory for a Vertex Array Object. This will bind together all the calls necessary to send our data to the GPU and interpret it, so that it's easier to call later in the program
 	unsigned int VAO;
@@ -148,8 +164,6 @@ int main()
 
 	//Sets the Vertex Array Object, so that further calls describing the buffer and interpretation are stored within that instance.
 	glBindVertexArray(VAO);
-
-	//generateCircle(4, VBO);
 
 	//Binds the GL array buffer to the buffer object that we just created
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
@@ -185,6 +199,9 @@ int main()
 		//Tells OpenGL how to get the data properly transmitted
 		glBindVertexArray(VAO);
 
+		//Pass the Model/View matrix into the shader
+		glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "mvMatrix"), 1, GL_FALSE, *model_matrix);
+
 		//Draw the circle. Yay!
 		glDrawArrays(GL_TRIANGLE_FAN, 0, NUM_CIRCLE_VERTICES+2);
 
@@ -211,40 +228,4 @@ void processInput(GLFWwindow* window)
 	//Window closes on the press of the escape key
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
-}
-
-//This method will generate a ring of vertices to make a circle
-void generateCircle(int num_vertices, int VBO)
-{
-	float angle;
-	int num_entries = (num_vertices + 2) * 3;
-
-	//A dynamically defined array
-	float *vertices = new float[num_entries];
-
-	//The center of the circle. As I intend to move it around with translations in the vertex shader, I'll leave it at (0,0,0) here
-	vertices[0] = 0.0;
-	vertices[1] = 0.0;
-	vertices[2] = 0.0;
-
-	for (int i = 1; i < num_entries;i++)
-	{
-		angle = float(i-1) * 3.14159 / 2;
-		vertices[3*i] = sin(angle);
-		vertices[3*i + 1] = cos(angle);
-		vertices[3*i + 2] = 0.0;
-	}
-
-	//for (int i = 0;i < num_entries;i++) {
-		//std::cout << vertices[i]<<'\n';
-	//}
-
-	glBindBuffer(GL_ARRAY_BUFFER,VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-	//Delete the array from memory, since I no longer need it
-	delete[] vertices;
-
-	//Unbind the VBO
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
