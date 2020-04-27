@@ -13,6 +13,7 @@
 //Tells VS that these will be functions that I will define at some point in the future
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow* window);
+void drawInSquareViewport(GLFWwindow* window);
 
 //Source code for the vertex shader. This program is written for OpenGL and describes how to transform the vertex data to put it on the screen
 const char *vertexShaderSource = "#version 330 core\n"
@@ -65,8 +66,8 @@ int main()
 		return -1;
 	}
 
-	//Sets the viewport for OpenGL. For our purposes right now, we want it to fill the entire window, so we match the viewport to the window.
-	glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+	//Sets the viewport for OpenGL. For circles to be drawn properly, it needs to be square
+	drawInSquareViewport(window);
 
 	//References our program to link OpenGL with the instructions on what to do in the event of a window resize 
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
@@ -187,11 +188,8 @@ int main()
 		//Processes any input that has happened since the last frame
 		processInput(window);
 
-		//Sets the clear color (i.e. the color that is written over everything at the beginning of a new frame render).
-		glClearColor(0.0f, 0.0f, 1.0f, 1.0f);
-
-		//Writes everything over with the color that we just specified.
-		glClear(GL_COLOR_BUFFER_BIT);
+		//Clears and resizes the window appropriately
+		drawInSquareViewport(window);
 
 		//Tells OpenGL to use the shaders that we custom made
 		glUseProgram(shaderProgram);
@@ -219,7 +217,7 @@ int main()
 //Tells OpenGL what to do in the event of a window resize
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
-	glViewport(0, 0, width, height);
+	drawInSquareViewport(window);
 }
 
 //A function that allows for keyboard input. I don't use much of its functionality, but it's useful to have for future reference.
@@ -228,4 +226,41 @@ void processInput(GLFWwindow* window)
 	//Window closes on the press of the escape key
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
+}
+
+void drawInSquareViewport(GLFWwindow *window)
+{
+	//Sets the viewport to be the whole screen
+	glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+	//Sets the clear color for the borders (grey)
+	glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT);
+
+	//Gets the current width and height of the window
+	int width;
+	int height;
+	glfwGetFramebufferSize(window,&width,&height);
+
+	//Find the minimum dimension
+	int min;
+	if (width < height)
+	{
+		min = width;
+	}
+	else
+	{
+		min = height;
+	}
+
+	//Draws on just a portion of the screen to clear the "viewing" area to black
+	glEnable(GL_SCISSOR_TEST);
+	glScissor(int((width - min) / 2.0), int((height - min) / 2.0), min, min);
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT);
+	glDisable(GL_SCISSOR_TEST);
+
+	//Defines the square to use for future OpenGL calls
+	glViewport(int((width - min) / 2.0), int((height - min) / 2.0), min, min);
+
+
 }
