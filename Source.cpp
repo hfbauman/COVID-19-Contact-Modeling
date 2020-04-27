@@ -9,6 +9,7 @@
 #define WINDOW_WIDTH (800)
 #define WINDOW_HEIGHT (600)
 #define NUM_CIRCLE_VERTICES (100)
+#define FRAMERATE (60)
 
 //Tells VS that these will be functions that I will define at some point in the future
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
@@ -180,11 +181,20 @@ int main()
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 
-
+	//Saves the time for framerate comparisons
+	double time_at_beginning_of_previous_frame = glfwGetTime();
 
 	//Event loop. This contains what the program should do every frame.
 	while (!glfwWindowShouldClose(window))
 	{
+		//Checks to see if enough time has passed to bother rendering another frame
+		if (glfwGetTime() < time_at_beginning_of_previous_frame + 1.0 / FRAMERATE)
+		{
+			continue;
+		}
+		//Saves the current time to reference on the next iterations of the loop
+		time_at_beginning_of_previous_frame = glfwGetTime();
+
 		//Processes any input that has happened since the last frame
 		processInput(window);
 
