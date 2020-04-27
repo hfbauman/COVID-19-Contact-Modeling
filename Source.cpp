@@ -5,6 +5,11 @@
 //Allows output messages
 #include <iostream>
 
+//Allows use of vector objects
+#include <vector>
+
+using namespace std;
+
 //Compile-time replacements:
 #define WINDOW_WIDTH (800)
 #define WINDOW_HEIGHT (600)
@@ -121,28 +126,23 @@ int main()
 	glDeleteShader(vertexShader);
 	glDeleteShader(fragmentShader);
 
-
-	//Defines the vertex data that I'd like to use
+	//Defines the vertex data that I'd like to use using vector objects
+	vector<float> circle((NUM_CIRCLE_VERTICES+2)*3);
+	//The center is (0,0,0) since I'll use the vertex shader to define translations
 	
-	//The vertices will have 2 more than the number of divisions--1 for the center and 1 to complete the circle
-	float vertices[(NUM_CIRCLE_VERTICES+2) * 3];
-
-	//Sets the center to be (0,0,0) so that I can easily use the shader to move the object around
-	vertices[0] = 0.0;
-	vertices[1] = 0.0;
-	vertices[2] = 0.0;
-
-	//The angle from (0,1,0)
+	//The angle as measured from (0,1,0) clockwise
 	float angle;
 
-	//Generates vertices around the circle
-	for (int i = 1; i < sizeof(vertices) / sizeof(vertices[0]) / 3 + 1;i++)
-	{
-		angle = (i - 1) *(2 * 3.14159) / NUM_CIRCLE_VERTICES;
-		vertices[3 * i] = sin(angle);
-		vertices[3 * i + 1] = cos(angle);
-		vertices[3 * i + 2] = 0.0;
+	//Makes a ring of vertices to draw with TRIANGLEFAN
+	for (int i = 1;i < NUM_CIRCLE_VERTICES + 2;i++) {
+		angle = (i - 1) * (2 * 3.14159) / NUM_CIRCLE_VERTICES;
+		circle[3 * i] = sin(angle);
+		circle[(3 * i) + 1] = cos(angle);
 	}
+
+	vector<vector<float>> model;
+
+
 
 	//Generate the model matrix for movement around the screen (i.e. the coordinates of where my object origin should reside)
 	float model_matrix[4][4] = { {0.0,0.0,0.0,0.0}, {0.0,0.0,0.0,0.0}, {0.0,0.0,0.0,0.0},{0.0,0.0,0.0,1.0} };
@@ -171,7 +171,7 @@ int main()
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 
 	//Sends the vertex data to the data buffer and tells it that we won't be changing this data often (which affects how the graphics card stores the data)
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, circle.size()*sizeof(float), circle.data(), GL_STATIC_DRAW);
 
 	//Defines how to process the data we sent in
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
