@@ -8,6 +8,9 @@
 //Allows use of vector objects
 #include <vector>
 
+//Circle class
+#include "Circle.h"
+
 using namespace std;
 
 //Compile-time replacements:
@@ -20,6 +23,8 @@ using namespace std;
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow* window);
 void drawInSquareViewport(GLFWwindow* window);
+vector<Circle> generateCircles();
+vector<Circle> createCircles(int amount, int VAO);
 
 //Source code for the vertex shader. This program is written for OpenGL and describes how to transform the vertex data to put it on the screen
 const char *vertexShaderSource = "#version 330 core\n"
@@ -126,60 +131,24 @@ int main()
 	glDeleteShader(vertexShader);
 	glDeleteShader(fragmentShader);
 
-	//Defines the vertex data that I'd like to use using vector objects
-	vector<float> circle((NUM_CIRCLE_VERTICES+2)*3);
-	//The center is (0,0,0) since I'll use the vertex shader to define translations
 	
-	//The angle as measured from (0,1,0) clockwise
-	float angle;
-
-	//Makes a ring of vertices to draw with TRIANGLEFAN
-	for (int i = 1;i < NUM_CIRCLE_VERTICES + 2;i++) {
-		angle = (i - 1) * (2 * 3.14159) / NUM_CIRCLE_VERTICES;
-		circle[3 * i] = sin(angle);
-		circle[(3 * i) + 1] = cos(angle);
-	}
-
-	vector<vector<float>> model;
-
-
 
 	//Generate the model matrix for movement around the screen (i.e. the coordinates of where my object origin should reside)
-	float model_matrix[4][4] = { {0.0,0.0,0.0,0.0}, {0.0,0.0,0.0,0.0}, {0.0,0.0,0.0,0.0},{0.0,0.0,0.0,1.0} };
-	model_matrix[0][0] = 0.5;//Scaling in x
-	model_matrix[1][1] = 0.5;//Scaling in y
-	model_matrix[2][2] = 0.5;//Scaling in z
-	model_matrix[3][0] = 0.5;//Translate in x
-	model_matrix[3][1] = 0.0;//Translate in y
-	model_matrix[3][2] = 0.0;//Translate in z
+	//Initialize to the identity matrix to be modified by later object calls
+	float model_matrix[4][4];
+	for (int i = 0;i < 4;i++) {
+		for (int j = 0;j < 4; j++) {
+			if (i == j) {
+				model_matrix[i][j] = 1.0;
+			}
+			else {
+				model_matrix[i][j] = 0.0;
+			}
+		}
+	}
 
-	//Create a spot in memory for a Vertex Array Object. This will bind together all the calls necessary to send our data to the GPU and interpret it, so that it's easier to call later in the program
-	unsigned int VAO;
-
-	glGenVertexArrays(1, &VAO);
-
-	//Creates a spot in memory for a handle to the Vertex Buffer Object
-	unsigned int VBO;
-
-	//Creates the Vertex Buffer Object and stores the handle in the spot in memory that we specify
-	glGenBuffers(1, &VBO);
-
-	//Sets the Vertex Array Object, so that further calls describing the buffer and interpretation are stored within that instance.
-	glBindVertexArray(VAO);
-
-	//Binds the GL array buffer to the buffer object that we just created
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-
-	//Sends the vertex data to the data buffer and tells it that we won't be changing this data often (which affects how the graphics card stores the data)
-	glBufferData(GL_ARRAY_BUFFER, circle.size()*sizeof(float), circle.data(), GL_STATIC_DRAW);
-
-	//Defines how to process the data we sent in
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(0);
-
-	//Now that we've finished making all of those definitions, tell OpenGL to stop writing things to those objects so that future statements don't accidentally modify them.
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindVertexArray(0);
+	vector<Circle> circles = generateCircles();
+	
 
 	//Saves the time for framerate comparisons
 	double time_at_beginning_of_previous_frame = glfwGetTime();
@@ -205,7 +174,14 @@ int main()
 		glUseProgram(shaderProgram);
 
 		//Tells OpenGL how to get the data properly transmitted
-		glBindVertexArray(VAO);
+		glBindVertexArray(circles[0].getVertexData());
+
+		//Update the model matrix
+		for (int i = 0;i < 3;i++) {
+			model_matrix[i][i] = circles[0].getRadius();
+		}
+		model_matrix[3][0] = circles[0].getX();
+		model_matrix[3][1] = circles[0].getY();
 
 		//Pass the Model/View matrix into the shader
 		glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "mvMatrix"), 1, GL_FALSE, *model_matrix);
@@ -273,4 +249,61 @@ void drawInSquareViewport(GLFWwindow *window)
 	glViewport(int((width - min) / 2.0), int((height - min) / 2.0), min, min);
 
 
+}
+
+vector<Circle> generateCircles()
+{
+	//Defines the vertex data that I'd like to use using vector objects
+	vector<float> circle((NUM_CIRCLE_VERTICES + 2) * 3);
+	//The center is (0,0,0) since I'll use the vertex shader to define translations
+
+	//The angle as measured from (0,1,0) clockwise
+	float angle;
+
+	//Makes a ring of vertices to draw with TRIANGLEFAN
+	for (int i = 1;i < NUM_CIRCLE_VERTICES + 2;i++) {
+		angle = (i - 1) * (2 * 3.14159) / NUM_CIRCLE_VERTICES;
+		circle[3 * i] = sin(angle);
+		circle[(3 * i) + 1] = cos(angle);
+	}
+
+
+	//Create a spot in memory for a Vertex Array Object. This will bind together all the calls necessary to send our data to the GPU and interpret it, so that it's easier to call later in the program
+	unsigned int VAO;
+
+	glGenVertexArrays(1, &VAO);
+
+	//Creates a spot in memory for a handle to the Vertex Buffer Object
+	unsigned int VBO;
+
+	//Creates the Vertex Buffer Object and stores the handle in the spot in memory that we specify
+	glGenBuffers(1, &VBO);
+
+	//Sets the Vertex Array Object, so that further calls describing the buffer and interpretation are stored within that instance.
+	glBindVertexArray(VAO);
+
+	//Binds the GL array buffer to the buffer object that we just created
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+
+	//Sends the vertex data to the data buffer and tells it that we won't be changing this data often (which affects how the graphics card stores the data)
+	glBufferData(GL_ARRAY_BUFFER, circle.size() * sizeof(float), circle.data(), GL_STATIC_DRAW);
+
+	//Defines how to process the data we sent in
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+
+	//Now that we've finished making all of those definitions, tell OpenGL to stop writing things to those objects so that future statements don't accidentally modify them.
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+
+	vector<Circle> result=createCircles(1, VAO);
+
+	return result;
+}
+
+vector<Circle> createCircles(int amount, int VAO)
+{
+	vector<Circle> result(amount);
+	result[0] = Circle(0.5, 0.5, 0.5, VAO);
+	return result;
 }

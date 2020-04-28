@@ -1,16 +1,19 @@
 #pragma once
+#include <vector>
+using namespace std;
 class Circle
 {
-	float *vertices;
 	float x;
 	float y;
-	float z;
 	float radius;
+	int vertex_data;
 
 public:
-	Circle(float x, float y, float z, float radius, int resolution);
-	~Circle();
-	void setPosition(float x, float y, float z);
-	void setRadius(float radius);
+	Circle(float x=0.0, float y=0.0, float radius=1.0, int vertex_data=0);
+	void setPosition(float x, float y);
+	int getVertexData();
+	float getRadius();
+	float getX();
+	float getY();
 };
 
