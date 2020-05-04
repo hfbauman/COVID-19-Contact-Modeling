@@ -1,6 +1,13 @@
 #include "Circle.h"
 #include <cmath>
 
+Circle::Circle(vector<float> position, float radius, int vertex_data)
+{
+	Circle::position = position;
+	Circle::radius = radius;
+	Circle::vertex_data = vertex_data;
+}
+
 Circle::Circle(float x, float y, float radius, int vertex_data)
 {
 	Circle::x = x;
@@ -33,5 +40,10 @@ float Circle::getX()
 float Circle::getY()
 {
 	return y;
+}
+
+vector<float> Circle::getPosition()
+{
+	return position;
 }
 

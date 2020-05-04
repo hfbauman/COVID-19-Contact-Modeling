@@ -180,8 +180,8 @@ int main()
 		for (int i = 0;i < 3;i++) {
 			model_matrix[i][i] = circles[0].getRadius();
 		}
-		model_matrix[3][0] = circles[0].getX();
-		model_matrix[3][1] = circles[0].getY();
+		model_matrix[3][0] = circles[0].getPosition()[0];
+		model_matrix[3][1] = circles[0].getPosition()[1];
 
 		//Pass the Model/View matrix into the shader
 		glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "mvMatrix"), 1, GL_FALSE, *model_matrix);
@@ -304,6 +304,9 @@ vector<Circle> generateCircles()
 vector<Circle> createCircles(int amount, int VAO)
 {
 	vector<Circle> result(amount);
-	result[0] = Circle(0.5, 0.5, 0.5, VAO);
+	vector<float> position(2);
+	position[0] = 0.5;
+	position[1] = 0.5;
+	result[0] = Circle(position, 0.5, VAO);
 	return result;
 }
