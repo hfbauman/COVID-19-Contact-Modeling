@@ -25,6 +25,7 @@ void processInput(GLFWwindow* window);
 void drawInSquareViewport(GLFWwindow* window);
 vector<Circle> generateCircles();
 vector<Circle> createCircles(int amount, int VAO);
+vector<Circle> circleMotion(vector<Circle> circles);
 
 //Source code for the vertex shader. This program is written for OpenGL and describes how to transform the vertex data to put it on the screen
 const char *vertexShaderSource = "#version 330 core\n"
@@ -180,6 +181,9 @@ int main()
 		//Processes any input that has happened since the last frame
 		processInput(window);
 
+		//Processes the movement of the circle
+		circles=circleMotion(circles);
+
 		//Clears and resizes the window appropriately
 		drawInSquareViewport(window);
 
@@ -326,4 +330,15 @@ vector<Circle> createCircles(int amount, int VAO)
 	position[1] = 0.5;
 	result[0] = Circle(position, 0.5, VAO);
 	return result;
+}
+
+vector<Circle> circleMotion(vector<Circle> circles)
+{
+	vector<float> position;
+	position.push_back(circles[0].getPosition()[0] + circles[0].getVelocity()[0]);
+	position.push_back(circles[0].getPosition()[1] + circles[0].getVelocity()[1]);
+
+	circles[0].setPosition(position);
+
+	return circles;
 }
