@@ -13,8 +13,8 @@ Circle::Circle(vector<float> position, float radius, int vertex_data)
 	Circle::color.push_back(1.0);
 
 	//Initialize velocity to be 0
-	Circle::velocity.push_back(-0.01);
-	Circle::velocity.push_back(0.02);
+	Circle::velocity.push_back(0.0);
+	Circle::velocity.push_back(0.0);
 }
 
 Circle::Circle(float x, float y, float radius, int vertex_data)

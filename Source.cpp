@@ -14,10 +14,12 @@
 using namespace std;
 
 //Compile-time replacements:
-#define WINDOW_WIDTH (800)
-#define WINDOW_HEIGHT (600)
-#define NUM_CIRCLE_VERTICES (100)
-#define FRAMERATE (60)
+#define WINDOW_WIDTH 800
+#define WINDOW_HEIGHT 600
+#define NUM_CIRCLE_VERTICES 100
+#define CIRCLE_RADIUS 0.1f
+#define CIRCLE_SPEED 0.01f
+#define FRAMERATE 60
 
 //Tells VS that these will be functions that I will define at some point in the future
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
@@ -294,13 +296,21 @@ vector<Circle> createCircles(int amount, int VAO)
 {
 	vector<Circle> result(amount);
 	vector<float> position(2);
+	vector<float> velocity(2);
+	float angle=3.14159/4;
 
 	position[0] = 0.5;
 	position[1] = 0.5;
 
 	for (int i = 0;i < result.size();i++) {
-		result[i] = Circle(position, 0.1, VAO);
-		position[0] = position[0]-2*0.1;
+		angle = i * 3.14159 / 2 + angle;
+		result[i] = Circle(position, CIRCLE_RADIUS, VAO);
+
+		velocity[0] = cos(angle);
+		velocity[1] = sin(angle);
+		result[i].setVelocity(velocity);
+
+		position[0] = position[0]-3*CIRCLE_RADIUS;
 	}
 	return result;
 }
@@ -315,8 +325,8 @@ vector<Circle> circleMotion(vector<Circle> circles)
 	for (int circle = 0;circle < circles.size();circle++) {
 		position = circles[circle].getPosition();
 		velocity = circles[circle].getVelocity();
-		position[0] = position[0] + velocity[0];
-		position[1] = position[1] + velocity[1];
+		position[0] = position[0] + velocity[0]*CIRCLE_SPEED;
+		position[1] = position[1] + velocity[1]*CIRCLE_SPEED;
 
 		circles[circle].setPosition(position);
 	}
@@ -326,15 +336,62 @@ vector<Circle> circleMotion(vector<Circle> circles)
 
 vector<Circle> circleCollision(vector<Circle> circles)
 {
-	vector<float> position;
-	vector<float> velocity;
+	vector<float> position(2);
+	vector<float> distance(2);
+	vector<float> velocity(2);
+	vector<float> other_velocity(2);
 	float radius;
+	float overlap;
+	float dot;
 
 	for (int circle = 0;circle < circles.size();circle++) {
 		vector<float> position = circles[circle].getPosition();
 		vector<float> velocity = circles[circle].getVelocity();
 		float radius = circles[circle].getRadius();
 
+		for (int other_circle = 0;other_circle < circles.size();other_circle++) {
+			//Prevents collisions with itself
+			if (other_circle != circle) {
+				//Calculates vector between the two circles
+				distance[0] = position[0] - circles[other_circle].getPosition()[0];
+				distance[1] = position[1] - circles[other_circle].getPosition()[1];
+
+				overlap = (circles[circle].getRadius() + circles[other_circle].getRadius())-sqrt(distance[0] * distance[0] + distance[1] * distance[1]);
+
+				if (overlap>0) {
+					other_velocity = circles[other_circle].getVelocity();
+
+					//Convert to unit vector
+					distance[0] = distance[0] / sqrt(distance[0] * distance[0] + distance[1] * distance[1]);
+					distance[1] = distance[1] / sqrt(distance[0] * distance[0] + distance[1] * distance[1]);
+
+					//Shift the position to avoid clipping
+					position[0] = position[0] + distance[0] * overlap;
+					position[1] = position[1] + distance[1] * overlap;
+
+					//Compute the dot product between the velocity and the normal vector to the plane of incidence
+					dot = velocity[0] * (-distance[0]) + velocity[1] * (-distance[1]);
+
+					//Adjust the velocity using the reflection formula
+					velocity[0] = velocity[0] - 2 * dot * (-distance[0]);
+					velocity[1] = velocity[1] - 2 * dot * (-distance[1]);
+
+					//Compute the dot product between the other velocity and the normal vector to the plane of incidence
+					dot = velocity[0] * distance[0] + velocity[1] * distance[1];
+
+					//Adjust the other velocity using the reflection formula
+					other_velocity[0] = other_velocity[0] - 2 * dot * distance[0];
+					other_velocity[1] = other_velocity[1] - 2 * dot * distance[1];
+
+					circles[other_circle].setVelocity(other_velocity);
+
+				}
+			}
+		}
+
+
+		//Checks for collisions between the circles and the sides of the screen
+		//I've intentionally put this last, as I want the circles to stay inside the screen more than I care about them slightly clipping into each other
 		if (position[0] < -1.0 + radius) {
 			position[0] = -1.0 + radius;
 			velocity[0] = -velocity[0];
