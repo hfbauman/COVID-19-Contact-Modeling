@@ -26,6 +26,7 @@ void drawInSquareViewport(GLFWwindow* window);
 vector<Circle> generateCircles();
 vector<Circle> createCircles(int amount, int VAO);
 vector<Circle> circleMotion(vector<Circle> circles);
+vector<Circle> circleCollision(vector<Circle> circles);
 
 //Source code for the vertex shader. This program is written for OpenGL and describes how to transform the vertex data to put it on the screen
 const char *vertexShaderSource = "#version 330 core\n"
@@ -328,17 +329,46 @@ vector<Circle> createCircles(int amount, int VAO)
 	vector<float> position(2);
 	position[0] = 0.5;
 	position[1] = 0.5;
-	result[0] = Circle(position, 0.5, VAO);
+	result[0] = Circle(position, 0.1, VAO);
 	return result;
 }
 
 vector<Circle> circleMotion(vector<Circle> circles)
 {
+	circles=circleCollision(circles);
+
 	vector<float> position;
 	position.push_back(circles[0].getPosition()[0] + circles[0].getVelocity()[0]);
 	position.push_back(circles[0].getPosition()[1] + circles[0].getVelocity()[1]);
 
 	circles[0].setPosition(position);
+
+	return circles;
+}
+
+vector<Circle> circleCollision(vector<Circle> circles)
+{
+	vector<float> position = circles[0].getPosition();
+	vector<float> velocity = circles[0].getVelocity();
+	float radius = circles[0].getRadius();
+	if (position[0] < -1.0+radius) {
+		position[0] = -1.0 + radius;
+		velocity[0] = -velocity[0];
+	}
+	else if (position[0] > 1.0 - radius) {
+		position[0] = 1.0 - radius;
+		velocity[0] = -velocity[0];
+	}
+	if (position[1] < -1.0 + radius) {
+		position[1] = -1.0 + radius;
+		velocity[1] = -velocity[1];
+	}
+	else if (position[1] > 1.0 - radius) {
+		position[1] = 1.0 - radius;
+		velocity[1] = -velocity[1];
+	}
+	circles[0].setPosition(position);
+	circles[0].setVelocity(velocity);
 
 	return circles;
 }
