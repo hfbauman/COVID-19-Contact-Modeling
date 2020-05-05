@@ -30,20 +30,33 @@ vector<Circle> createCircles(int amount, int VAO);
 const char *vertexShaderSource = "#version 330 core\n"
 "layout (location=0) in vec3 position;\n" //Specifies that the position vector should be put in location 0
 
-"uniform mat4 mvMatrix;"
+//This matrix will hold the scaling and translational data for the drawing of the entire circle
+"uniform mat4 mvMatrix;\n"
+
+//This will hold the rgb color data
+"uniform vec3 color;\n"
+
+"out VS_OUT {\n"
+"	vec4 color;\n"
+"} vs_out;\n"
+
+
 "void main()\n"
 "{\n"
-"	vec4 screen_position=mvMatrix*vec4(position,1.0);"
-"	gl_Position=screen_position;\n"
+"	gl_Position=mvMatrix*vec4(position,1.0);\n"
+"	vs_out.color=vec4(color, 1.0);\n"
 "}\0";
 
 //Source code for the fragment shader. This program is also written for OpenGL and describes how to color shapes that we are passing in. It colors everything the same color.
 const char *fragmentShaderSource = "#version 330 core\n"
     "out vec4 FragColor;\n"
+	"in VS_OUT{\n"
+	"	vec4 color;\n"
+	"} fs_in;\n"
     "void main()\n"
     "{\n"
-    "   FragColor = vec4(1.0f, 1.0f, 1.0f, 1.0f);\n"
-	"}\n\0";
+    "   FragColor = fs_in.color;\n"
+	"}\0";
 
 int main()
 {
@@ -185,6 +198,10 @@ int main()
 
 		//Pass the Model/View matrix into the shader
 		glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "mvMatrix"), 1, GL_FALSE, *model_matrix);
+
+		//Pass the color from the circle object into the shader
+		glUniform3fv(glGetUniformLocation(shaderProgram, "color"), 1, circles[0].getColor().data());
+
 
 		//Draw the circle. Yay!
 		glDrawArrays(GL_TRIANGLE_FAN, 0, NUM_CIRCLE_VERTICES+2);
