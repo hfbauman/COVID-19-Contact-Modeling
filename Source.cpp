@@ -27,6 +27,7 @@ vector<Circle> generateCircles();
 vector<Circle> createCircles(int amount, int VAO);
 vector<Circle> circleMotion(vector<Circle> circles);
 vector<Circle> circleCollision(vector<Circle> circles);
+void drawCircles(vector<Circle> circles, int shaderProgram);
 
 //Source code for the vertex shader. This program is written for OpenGL and describes how to transform the vertex data to put it on the screen
 const char *vertexShaderSource = "#version 330 core\n"
@@ -146,25 +147,9 @@ int main()
 	glDeleteShader(vertexShader);
 	glDeleteShader(fragmentShader);
 
-	
-
-	//Generate the model matrix for movement around the screen (i.e. the coordinates of where my object origin should reside)
-	//Initialize to the identity matrix to be modified by later object calls
-	float model_matrix[4][4];
-	for (int i = 0;i < 4;i++) {
-		for (int j = 0;j < 4; j++) {
-			if (i == j) {
-				model_matrix[i][j] = 1.0;
-			}
-			else {
-				model_matrix[i][j] = 0.0;
-			}
-		}
-	}
-
+	//Generate array of circles
 	vector<Circle> circles = generateCircles();
 	
-
 	//Saves the time for framerate comparisons
 	double time_at_beginning_of_previous_frame = glfwGetTime();
 
@@ -191,25 +176,7 @@ int main()
 		//Tells OpenGL to use the shaders that we custom made
 		glUseProgram(shaderProgram);
 
-		//Tells OpenGL how to get the data properly transmitted
-		glBindVertexArray(circles[0].getVertexData());
-
-		//Update the model matrix
-		for (int i = 0;i < 3;i++) {
-			model_matrix[i][i] = circles[0].getRadius();
-		}
-		model_matrix[3][0] = circles[0].getPosition()[0];
-		model_matrix[3][1] = circles[0].getPosition()[1];
-
-		//Pass the Model/View matrix into the shader
-		glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "mvMatrix"), 1, GL_FALSE, *model_matrix);
-
-		//Pass the color from the circle object into the shader
-		glUniform3fv(glGetUniformLocation(shaderProgram, "color"), 1, circles[0].getColor().data());
-
-
-		//Draw the circle. Yay!
-		glDrawArrays(GL_TRIANGLE_FAN, 0, NUM_CIRCLE_VERTICES+2);
+		drawCircles(circles,shaderProgram);
 
 		//Finished with rendering, display the image on the screen.
 		glfwSwapBuffers(window);
@@ -318,7 +285,7 @@ vector<Circle> generateCircles()
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 
-	vector<Circle> result=createCircles(1, VAO);
+	vector<Circle> result=createCircles(2, VAO);
 
 	return result;
 }
@@ -327,9 +294,14 @@ vector<Circle> createCircles(int amount, int VAO)
 {
 	vector<Circle> result(amount);
 	vector<float> position(2);
+
 	position[0] = 0.5;
 	position[1] = 0.5;
-	result[0] = Circle(position, 0.1, VAO);
+
+	for (int i = 0;i < result.size();i++) {
+		result[i] = Circle(position, 0.1, VAO);
+		position[0] = position[0]-2*0.1;
+	}
 	return result;
 }
 
@@ -338,37 +310,92 @@ vector<Circle> circleMotion(vector<Circle> circles)
 	circles=circleCollision(circles);
 
 	vector<float> position;
-	position.push_back(circles[0].getPosition()[0] + circles[0].getVelocity()[0]);
-	position.push_back(circles[0].getPosition()[1] + circles[0].getVelocity()[1]);
+	vector<float> velocity;
 
-	circles[0].setPosition(position);
+	for (int circle = 0;circle < circles.size();circle++) {
+		position = circles[circle].getPosition();
+		velocity = circles[circle].getVelocity();
+		position[0] = position[0] + velocity[0];
+		position[1] = position[1] + velocity[1];
+
+		circles[circle].setPosition(position);
+	}
 
 	return circles;
 }
 
 vector<Circle> circleCollision(vector<Circle> circles)
 {
-	vector<float> position = circles[0].getPosition();
-	vector<float> velocity = circles[0].getVelocity();
-	float radius = circles[0].getRadius();
-	if (position[0] < -1.0+radius) {
-		position[0] = -1.0 + radius;
-		velocity[0] = -velocity[0];
+	vector<float> position;
+	vector<float> velocity;
+	float radius;
+
+	for (int circle = 0;circle < circles.size();circle++) {
+		vector<float> position = circles[circle].getPosition();
+		vector<float> velocity = circles[circle].getVelocity();
+		float radius = circles[circle].getRadius();
+
+		if (position[0] < -1.0 + radius) {
+			position[0] = -1.0 + radius;
+			velocity[0] = -velocity[0];
+		}
+		else if (position[0] > 1.0 - radius) {
+			position[0] = 1.0 - radius;
+			velocity[0] = -velocity[0];
+		}
+		if (position[1] < -1.0 + radius) {
+			position[1] = -1.0 + radius;
+			velocity[1] = -velocity[1];
+		}
+		else if (position[1] > 1.0 - radius) {
+			position[1] = 1.0 - radius;
+			velocity[1] = -velocity[1];
+		}
+
+		circles[circle].setPosition(position);
+		circles[circle].setVelocity(velocity);
 	}
-	else if (position[0] > 1.0 - radius) {
-		position[0] = 1.0 - radius;
-		velocity[0] = -velocity[0];
-	}
-	if (position[1] < -1.0 + radius) {
-		position[1] = -1.0 + radius;
-		velocity[1] = -velocity[1];
-	}
-	else if (position[1] > 1.0 - radius) {
-		position[1] = 1.0 - radius;
-		velocity[1] = -velocity[1];
-	}
-	circles[0].setPosition(position);
-	circles[0].setVelocity(velocity);
 
 	return circles;
+}
+
+void drawCircles(vector<Circle> circles, int shaderProgram) {
+	//Generate the model matrix for movement around the screen (i.e. the coordinates of where my object origin should reside)
+	//Initialize to the identity matrix to be modified by later object calls
+	float model_matrix[4][4];
+	
+	for (int circle = 0;circle < circles.size();circle++) {
+		//Reset model matrix to the identity matrix
+		for (int i = 0;i < 4;i++) {
+			for (int j = 0;j < 4; j++) {
+				if (i == j) {
+					model_matrix[i][j] = 1.0;
+				}
+				else {
+					model_matrix[i][j] = 0.0;
+				}
+			}
+		}
+
+		//Tells OpenGL how to get the data properly transmitted
+		glBindVertexArray(circles[circle].getVertexData());
+
+		//Update the model matrix
+		for (int i = 0;i < 3;i++) {
+			model_matrix[i][i] = circles[circle].getRadius();
+		}
+		model_matrix[3][0] = circles[circle].getPosition()[0];
+		model_matrix[3][1] = circles[circle].getPosition()[1];
+
+		//Pass the Model/View matrix into the shader
+		glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "mvMatrix"), 1, GL_FALSE, *model_matrix);
+
+		//Pass the color from the circle object into the shader
+		glUniform3fv(glGetUniformLocation(shaderProgram, "color"), 1, circles[0].getColor().data());
+
+
+		//Draw the circle. Yay!
+		glDrawArrays(GL_TRIANGLE_FAN, 0, NUM_CIRCLE_VERTICES + 2);
+	}
+
 }
