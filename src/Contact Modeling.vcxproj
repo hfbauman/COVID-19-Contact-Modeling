@@ -72,13 +72,13 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>C:\Users\ringo\Source\Repos\COVID-19\Libraries\glad\include;C:\Users\ringo\Source\Repos\COVID-19\Libraries\glfw-3.3.2%28x32%29\glfw-3.3.2.bin.WIN32\include;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Users\ringo\Source\Repos\COVID-19\Libraries\glfw-3.3.2%28x32%29\glfw-3.3.2.bin.WIN32\lib-vc2019;$(LibraryPath)</LibraryPath>
+    <IncludePath>..\Libraries\glad\include;..\Libraries\glfw-3.3.2%28x32%29\glfw-3.3.2.bin.WIN32\include;$(IncludePath)</IncludePath>
+    <LibraryPath>..\Libraries\glfw-3.3.2%28x32%29\glfw-3.3.2.bin.WIN32\lib-vc2019;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>C:\Users\ringo\Source\Repos\COVID-19\Libraries\glad\include;C:\Users\ringo\Source\Repos\COVID-19\Libraries\GLFW-3.3.2%28x64%29\include;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Users\ringo\Source\Repos\COVID-19\Libraries\GLFW-3.3.2%28x64%29\lib-vc2019;$(LibraryPath)</LibraryPath>
+    <IncludePath>..\Libraries\glad\include;..\Libraries\GLFW-3.3.2%28x64%29\include;$(IncludePath)</IncludePath>
+    <LibraryPath>..\Libraries\GLFW-3.3.2%28x64%29\lib-vc2019;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
