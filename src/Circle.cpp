@@ -1,7 +1,7 @@
 #include "Circle.h"
 #include <cmath>
 
-Circle::Circle(vector<float> position, float radius, int vertex_data)
+Circle::Circle(vector<double> position, double radius, int vertex_data)
 {
 	Circle::position = position;
 	Circle::radius = radius;
@@ -17,7 +17,7 @@ Circle::Circle(vector<float> position, float radius, int vertex_data)
 	Circle::velocity.push_back(0.0);
 }
 
-Circle::Circle(float x, float y, float radius, int vertex_data)
+Circle::Circle(double x, double y, double radius, int vertex_data)
 {
 	Circle::x = x;
 	Circle::y = y;
@@ -36,7 +36,7 @@ Circle::Circle(float x, float y, float radius, int vertex_data)
 	Circle::velocity.push_back(0.0);
 }
 
-void Circle::setPosition(vector<float> position)
+void Circle::setPosition(vector<double> position)
 {
 	Circle::position = position;
 	x = Circle::position[0];
@@ -48,7 +48,7 @@ void Circle::setColor(vector<float> color)
 	Circle::color = color;
 }
 
-void Circle::setVelocity(vector<float> velocity)
+void Circle::setVelocity(vector<double> velocity)
 {
 	Circle::velocity = velocity;
 }
@@ -58,22 +58,22 @@ int Circle::getVertexData()
 	return vertex_data;
 }
 
-float Circle::getRadius()
+double Circle::getRadius()
 {
 	return radius;
 }
 
-float Circle::getX()
+double Circle::getX()
 {
 	return x;
 }
 
-float Circle::getY()
+double Circle::getY()
 {
 	return y;
 }
 
-vector<float> Circle::getPosition()
+vector<double> Circle::getPosition()
 {
 	return position;
 }
@@ -83,7 +83,7 @@ vector<float> Circle::getColor()
 	return color;
 }
 
-vector<float> Circle::getVelocity()
+vector<double> Circle::getVelocity()
 {
 	return velocity;
 }

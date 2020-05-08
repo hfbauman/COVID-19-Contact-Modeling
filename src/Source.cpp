@@ -7,6 +7,7 @@
 
 //Allows use of vector objects
 #include <vector>
+#include<numeric>
 
 //Circle class
 #include "Circle.h"
@@ -17,8 +18,8 @@ using namespace std;
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
 #define NUM_CIRCLE_VERTICES 100
-#define CIRCLE_RADIUS 0.1f
-#define CIRCLE_SPEED 0.01f
+#define CIRCLE_RADIUS 0.1
+#define CIRCLE_SPEED 0.01
 #define FRAMERATE 60
 
 //Tells VS that these will be functions that I will define at some point in the future
@@ -76,7 +77,7 @@ int main()
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 	//Creates a pointer to a window object with GLFW
-	GLFWwindow* window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "LearnOpenGL", NULL, NULL);
+	GLFWwindow* window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Contact Modeling", NULL, NULL);
 	
 	//Recognizes if the window didn't generate properly. If it didn't, we clean up GLFW and return an error.
 	if (window == NULL) {
@@ -245,15 +246,15 @@ void drawInSquareViewport(GLFWwindow *window)
 vector<Circle> generateCircles()
 {
 	//Defines the vertex data that I'd like to use using vector objects
-	vector<float> circle((NUM_CIRCLE_VERTICES + 2) * 3);
+	vector<double> circle((NUM_CIRCLE_VERTICES + 2) * 3);
 	//The center is (0,0,0) since I'll use the vertex shader to define translations
 
 	//The angle as measured from (0,1,0) clockwise
-	float angle;
+	double angle;
 
 	//Makes a ring of vertices to draw with TRIANGLEFAN
 	for (int i = 1;i < NUM_CIRCLE_VERTICES + 2;i++) {
-		angle = (i - 1) * (2 * 3.14159) / NUM_CIRCLE_VERTICES;
+		angle = (i - 1) * (2 * 3.14159265358979323846) / NUM_CIRCLE_VERTICES;
 		circle[3 * i] = sin(angle);
 		circle[(3 * i) + 1] = cos(angle);
 	}
@@ -277,10 +278,10 @@ vector<Circle> generateCircles()
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 
 	//Sends the vertex data to the data buffer and tells it that we won't be changing this data often (which affects how the graphics card stores the data)
-	glBufferData(GL_ARRAY_BUFFER, circle.size() * sizeof(float), circle.data(), GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, circle.size() * sizeof(double), circle.data(), GL_STATIC_DRAW);
 
 	//Defines how to process the data we sent in
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+	glVertexAttribPointer(0, 3, GL_DOUBLE, GL_FALSE, 3 * sizeof(double), (void*)0);
 	glEnableVertexAttribArray(0);
 
 	//Now that we've finished making all of those definitions, tell OpenGL to stop writing things to those objects so that future statements don't accidentally modify them.
@@ -295,32 +296,38 @@ vector<Circle> generateCircles()
 vector<Circle> createCircles(int amount, int VAO)
 {
 	vector<Circle> result(amount);
-	vector<float> position(2);
-	vector<float> velocity(2);
-	float angle=3.14159/4;
+	vector<double> position(2);
+	vector<double> velocity(2);
+	vector<float> color(3);
+	double angle = 5*3.14159265358979323846/4;
 
 	position[0] = 0.5;
 	position[1] = 0.5;
 
 	for (int i = 0;i < result.size();i++) {
-		angle = i * 3.14159 / 2 + angle;
+		angle = i * 3.14159265358979323846 + angle;
 		result[i] = Circle(position, CIRCLE_RADIUS, VAO);
 
 		velocity[0] = cos(angle);
 		velocity[1] = sin(angle);
 		result[i].setVelocity(velocity);
 
-		position[0] = position[0]-3*CIRCLE_RADIUS;
+		position[0] = position[0] - 1;
+		position[1] = position[1] - 1;
 	}
+	color[0] = 1.0;
+	result[0].setColor(color);
+
 	return result;
+	
 }
 
 vector<Circle> circleMotion(vector<Circle> circles)
 {
 	circles=circleCollision(circles);
 
-	vector<float> position;
-	vector<float> velocity;
+	vector<double> position;
+	vector<double> velocity;
 
 	for (int circle = 0;circle < circles.size();circle++) {
 		position = circles[circle].getPosition();
@@ -336,57 +343,67 @@ vector<Circle> circleMotion(vector<Circle> circles)
 
 vector<Circle> circleCollision(vector<Circle> circles)
 {
-	vector<float> position(2);
-	vector<float> distance(2);
-	vector<float> velocity(2);
-	vector<float> other_velocity(2);
-	float radius;
-	float overlap;
-	float dot;
+	vector<double> position(2);
+	vector<double> distance(2);
+	vector<double> velocity(2);
+	vector<double> other_velocity(2);
+	vector<double> foo(2);
+	double radius;
+	double overlap;
+	double dot;
+	double magnitude;
 
 	for (int circle = 0;circle < circles.size();circle++) {
-		vector<float> position = circles[circle].getPosition();
-		vector<float> velocity = circles[circle].getVelocity();
-		float radius = circles[circle].getRadius();
 
-		for (int other_circle = 0;other_circle < circles.size();other_circle++) {
-			//Prevents collisions with itself
-			if (other_circle != circle) {
-				//Calculates vector between the two circles
-				distance[0] = position[0] - circles[other_circle].getPosition()[0];
-				distance[1] = position[1] - circles[other_circle].getPosition()[1];
+		//Poll the current attributes of the circle of interest
+		position = circles[circle].getPosition();
+		velocity = circles[circle].getVelocity();
+		radius = circles[circle].getRadius();
 
-				overlap = (circles[circle].getRadius() + circles[other_circle].getRadius())-sqrt(distance[0] * distance[0] + distance[1] * distance[1]);
+		//Check for collisions between circles. By starting the second loop after the current position of the first loop, I don't check for the same collision twice
+		for (int other_circle = circle+1;other_circle < circles.size();other_circle++) {
 
-				if (overlap>0) {
-					other_velocity = circles[other_circle].getVelocity();
+			//Calculates vector between the two circles
+			distance[0] = position[0] - circles[other_circle].getPosition()[0];
+			distance[1] = position[1] - circles[other_circle].getPosition()[1];
 
-					//Convert to unit vector
-					distance[0] = distance[0] / sqrt(distance[0] * distance[0] + distance[1] * distance[1]);
-					distance[1] = distance[1] / sqrt(distance[0] * distance[0] + distance[1] * distance[1]);
+			//The magnitude of the distance vector
+			magnitude = sqrt(distance[0] * distance[0] + distance[1] * distance[1]);
 
-					//Shift the position to avoid clipping
-					position[0] = position[0] + distance[0] * overlap;
-					position[1] = position[1] + distance[1] * overlap;
+			//The amount of overlap between the two circles
+			overlap = (circles[circle].getRadius() + circles[other_circle].getRadius())-magnitude;
+				
+			//Rounding error is in the 1e-17 spot, so this avoids weird rounding errors that might not shift the circles quite all of the way out of each other
+			if (overlap>1e-16) {
+				//Poll the velocity of the other circle
+				other_velocity = circles[other_circle].getVelocity();
 
-					//Compute the dot product between the velocity and the normal vector to the plane of incidence
-					dot = velocity[0] * (-distance[0]) + velocity[1] * (-distance[1]);
+				//Convert the displacement vector to a unit vector
+				distance[0] = distance[0] / magnitude;
+				distance[1] = distance[1] / magnitude;
 
-					//Adjust the velocity using the reflection formula
-					velocity[0] = velocity[0] - 2 * dot * (-distance[0]);
-					velocity[1] = velocity[1] - 2 * dot * (-distance[1]);
+				//Shift the position to avoid clipping
+				position[0] = position[0] + distance[0] * overlap;
+				position[1] = position[1] + distance[1] * overlap;
 
-					//Compute the dot product between the other velocity and the normal vector to the plane of incidence
-					dot = velocity[0] * distance[0] + velocity[1] * distance[1];
+				//Compute the dot product between the velocity and the normal vector to the plane of incidence
+				dot = velocity[0] * (-distance[0]) + velocity[1] * (-distance[1]);
 
-					//Adjust the other velocity using the reflection formula
-					other_velocity[0] = other_velocity[0] - 2 * dot * distance[0];
-					other_velocity[1] = other_velocity[1] - 2 * dot * distance[1];
+				//Adjust the velocity using the reflection formula
+				velocity[0] = velocity[0] - 2 * dot * (-distance[0]);
+				velocity[1] = velocity[1] - 2 * dot * (-distance[1]);
 
-					circles[other_circle].setVelocity(other_velocity);
+				//Compute the dot product between the other velocity and the normal vector to the plane of incidence
+				dot = other_velocity[0] * distance[0] + other_velocity[1] * distance[1];
 
-				}
+				//Adjust the other velocity using the reflection formula
+				other_velocity[0] = other_velocity[0] - 2 * dot * distance[0];
+				other_velocity[1] = other_velocity[1] - 2 * dot * distance[1];
+
+				//Set the velocity for the other circle
+				circles[other_circle].setVelocity(other_velocity);
 			}
+			
 		}
 
 
@@ -395,20 +412,20 @@ vector<Circle> circleCollision(vector<Circle> circles)
 		if (position[0] < -1.0 + radius) {
 			position[0] = -1.0 + radius;
 			velocity[0] = -velocity[0];
-		}
-		else if (position[0] > 1.0 - radius) {
+		}else if (position[0] > 1.0 - radius) {
 			position[0] = 1.0 - radius;
 			velocity[0] = -velocity[0];
 		}
+
 		if (position[1] < -1.0 + radius) {
 			position[1] = -1.0 + radius;
 			velocity[1] = -velocity[1];
-		}
-		else if (position[1] > 1.0 - radius) {
+		}else if (position[1] > 1.0 - radius) {
 			position[1] = 1.0 - radius;
 			velocity[1] = -velocity[1];
 		}
 
+		//Set the circle attributes as calculated
 		circles[circle].setPosition(position);
 		circles[circle].setVelocity(velocity);
 	}
@@ -439,16 +456,16 @@ void drawCircles(vector<Circle> circles, int shaderProgram) {
 
 		//Update the model matrix
 		for (int i = 0;i < 3;i++) {
-			model_matrix[i][i] = circles[circle].getRadius();
+			model_matrix[i][i] = (float)circles[circle].getRadius();
 		}
-		model_matrix[3][0] = circles[circle].getPosition()[0];
-		model_matrix[3][1] = circles[circle].getPosition()[1];
+		model_matrix[3][0] = (float)circles[circle].getPosition()[0];
+		model_matrix[3][1] = (float)circles[circle].getPosition()[1];
 
 		//Pass the Model/View matrix into the shader
 		glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "mvMatrix"), 1, GL_FALSE, *model_matrix);
 
 		//Pass the color from the circle object into the shader
-		glUniform3fv(glGetUniformLocation(shaderProgram, "color"), 1, circles[0].getColor().data());
+		glUniform3fv(glGetUniformLocation(shaderProgram, "color"), 1, circles[circle].getColor().data());
 
 
 		//Draw the circle. Yay!

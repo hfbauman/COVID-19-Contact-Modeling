@@ -3,26 +3,26 @@
 using namespace std;
 class Circle
 {
-	vector<float> position;
+	vector<double> position;
 	vector<float> color;
-	vector<float> velocity;
-	float x;
-	float y;
-	float radius;
+	vector<double> velocity;
+	double x;
+	double y;
+	double radius;
 	int vertex_data;
 
 public:
-	Circle(vector<float> position, float radius, int vertex_data);
-	Circle(float x=0.0, float y=0.0, float radius=1.0, int vertex_data=0);
-	void setPosition(vector<float> position);
+	Circle(vector<double> position, double radius, int vertex_data);
+	Circle(double x=0.0, double y=0.0, double radius=1.0, int vertex_data=0);
+	void setPosition(vector<double> position);
 	void setColor(vector<float> color);
-	void setVelocity(vector<float> velocity);
+	void setVelocity(vector<double> velocity);
 	int getVertexData();
-	float getRadius();
-	float getX();
-	float getY();
-	vector<float> getPosition();
+	double getRadius();
+	double getX();
+	double getY();
+	vector<double> getPosition();
 	vector<float> getColor();
-	vector<float> getVelocity();
+	vector<double> getVelocity();
 };
 
