@@ -7,7 +7,10 @@
 
 //Allows use of vector objects
 #include <vector>
-#include<numeric>
+
+//Gives random number generation
+#include<cstdlib>
+#include <time.h>
 
 //Circle class
 #include "Circle.h"
@@ -18,9 +21,11 @@ using namespace std;
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
 #define NUM_CIRCLE_VERTICES 100
-#define CIRCLE_RADIUS 0.1
+#define NUM_CIRCLES 30
+#define CIRCLE_RADIUS 0.05
 #define CIRCLE_SPEED 0.01
 #define FRAMERATE 60
+#define PI 3.14159265358979323846
 
 //Tells VS that these will be functions that I will define at some point in the future
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
@@ -254,7 +259,7 @@ vector<Circle> generateCircles()
 
 	//Makes a ring of vertices to draw with TRIANGLEFAN
 	for (int i = 1;i < NUM_CIRCLE_VERTICES + 2;i++) {
-		angle = (i - 1) * (2 * 3.14159265358979323846) / NUM_CIRCLE_VERTICES;
+		angle = (i - 1) * (2 * PI) / NUM_CIRCLE_VERTICES;
 		circle[3 * i] = sin(angle);
 		circle[(3 * i) + 1] = cos(angle);
 	}
@@ -288,7 +293,7 @@ vector<Circle> generateCircles()
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 
-	vector<Circle> result=createCircles(2, VAO);
+	vector<Circle> result=createCircles(NUM_CIRCLES, VAO);
 
 	return result;
 }
@@ -298,28 +303,32 @@ vector<Circle> createCircles(int amount, int VAO)
 	vector<Circle> result(amount);
 	vector<double> position(2);
 	vector<double> velocity(2);
-	vector<float> color(3);
-	double angle = 5*3.14159265358979323846/4;
+	double angle;
+	double max=RAND_MAX;
 
-	position[0] = 0.5;
-	position[1] = 0.5;
+	srand(time(NULL));
 
 	for (int i = 0;i < result.size();i++) {
-		angle = i * 3.14159265358979323846 + angle;
+
+		//Calculate random position
+		position[0] = (rand() / max) * 2 - 1;
+		position[1] = (rand() / max) * 2 - 1;
+
+		//Create circle object
 		result[i] = Circle(position, CIRCLE_RADIUS, VAO);
 
+		//Calculate random velocity angle
+		angle = (rand() / max) * 2 * PI;
+
+		//Calculate Cartesian components of velocity
 		velocity[0] = cos(angle);
 		velocity[1] = sin(angle);
-		result[i].setVelocity(velocity);
 
-		position[0] = position[0] - 1;
-		position[1] = position[1] - 1;
+		//Set velocity result
+		result[i].setVelocity(velocity);
 	}
-	color[0] = 1.0;
-	result[0].setColor(color);
 
 	return result;
-	
 }
 
 vector<Circle> circleMotion(vector<Circle> circles)
