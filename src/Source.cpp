@@ -18,6 +18,7 @@
 using namespace std;
 
 //Compile-time replacements:
+#define PI 3.14159265358979323846
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
 #define NUM_CIRCLE_VERTICES 100
@@ -25,7 +26,9 @@ using namespace std;
 #define CIRCLE_RADIUS 0.05
 #define CIRCLE_SPEED 0.01
 #define FRAMERATE 60
-#define PI 3.14159265358979323846
+#define INFECTION_CHANCE 1.0
+#define AVG_RECOVERY 2.0
+#define IMMUNITY true
 
 //Tells VS that these will be functions that I will define at some point in the future
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
@@ -303,10 +306,14 @@ vector<Circle> createCircles(int amount, int VAO)
 	vector<Circle> result(amount);
 	vector<double> position(2);
 	vector<double> velocity(2);
+	vector<float> color(3);
 	double angle;
 	double max=RAND_MAX;
 
 	srand(time(NULL));
+
+	//Make the uninfected color blue
+	color[2] = 1.0;
 
 	for (int i = 0;i < result.size();i++) {
 
@@ -326,7 +333,19 @@ vector<Circle> createCircles(int amount, int VAO)
 
 		//Set velocity result
 		result[i].setVelocity(velocity);
+
+		//Set color to be uninfected;
+		result[i].setColor(color);
 	}
+
+	//Check for circle overlap before the program starts
+	result = circleCollision(result);
+
+	color[2] = 0.0;
+	color[0] = 1.0;
+
+	//Start an infection. Note that I've done this after the collision detection has already run once, so that any circles that were initially overlapping don't infect each other
+	result[0].setColor(color);
 
 	return result;
 }
@@ -356,11 +375,17 @@ vector<Circle> circleCollision(vector<Circle> circles)
 	vector<double> distance(2);
 	vector<double> velocity(2);
 	vector<double> other_velocity(2);
-	vector<double> foo(2);
+	vector<float> red(3);
+	vector<float> green(3);
 	double radius;
 	double overlap;
 	double dot;
 	double magnitude;
+
+	double max = RAND_MAX;
+
+	red[0] = 1.0;
+	green[1] = 1.0;
 
 	for (int circle = 0;circle < circles.size();circle++) {
 
@@ -411,6 +436,25 @@ vector<Circle> circleCollision(vector<Circle> circles)
 
 				//Set the velocity for the other circle
 				circles[other_circle].setVelocity(other_velocity);
+
+				//Check for infection transmission
+				if ((circles[circle].getColor()[0] + circles[other_circle].getColor()[0] == 1.0)) {
+					if (rand() / max < INFECTION_CHANCE) {
+						if (IMMUNITY) {
+							//No chance of reinfection
+							if (circles[circle].getColor() != green) {
+								circles[circle].setColor(red);
+							}
+							if (circles[other_circle].getColor() != green) {
+								circles[other_circle].setColor(red);
+							}
+						}
+						else {
+							circles[circle].setColor(red);
+							circles[other_circle].setColor(red);
+						}
+					}
+				}
 			}
 			
 		}
@@ -437,6 +481,12 @@ vector<Circle> circleCollision(vector<Circle> circles)
 		//Set the circle attributes as calculated
 		circles[circle].setPosition(position);
 		circles[circle].setVelocity(velocity);
+
+		//Check for recovered
+		if ((circles[circle].getColor() == red) && rand() / max < 1 / (AVG_RECOVERY * FRAMERATE)) {
+			circles[circle].setColor(green);
+		}
+
 	}
 
 	return circles;

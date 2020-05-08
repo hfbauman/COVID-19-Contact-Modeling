@@ -10,6 +10,7 @@ class Circle
 	double y;
 	double radius;
 	int vertex_data;
+	int infection_count;
 
 public:
 	Circle(vector<double> position, double radius, int vertex_data);

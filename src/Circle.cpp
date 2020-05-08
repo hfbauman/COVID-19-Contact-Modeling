@@ -6,6 +6,8 @@ Circle::Circle(vector<double> position, double radius, int vertex_data)
 	Circle::position = position;
 	Circle::radius = radius;
 	Circle::vertex_data = vertex_data;
+
+	infection_count = 0;
 	
 	//Initialize the color to be white
 	Circle::color.push_back(1.0);
