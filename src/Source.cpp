@@ -27,7 +27,7 @@ using namespace std;
 #define CIRCLE_SPEED 0.01
 #define FRAMERATE 60
 #define INFECTION_CHANCE 1.0
-#define AVG_RECOVERY 2.0
+#define AVG_RECOVERY 5.0
 #define IMMUNITY true
 
 //Tells VS that these will be functions that I will define at some point in the future
