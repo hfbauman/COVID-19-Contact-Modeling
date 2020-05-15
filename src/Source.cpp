@@ -26,9 +26,6 @@ using namespace std;
 #define CIRCLE_RADIUS 0.05
 #define CIRCLE_SPEED 0.01
 #define FRAMERATE 60
-#define INFECTION_CHANCE 1.0
-#define AVG_RECOVERY 5.0
-#define IMMUNITY true
 
 //Tells VS that these will be functions that I will define at some point in the future
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
@@ -36,8 +33,8 @@ void processInput(GLFWwindow* window);
 void drawInSquareViewport(GLFWwindow* window);
 vector<Circle> generateCircles();
 vector<Circle> createCircles(int amount, int VAO);
-vector<Circle> circleMotion(vector<Circle> circles);
-vector<Circle> circleCollision(vector<Circle> circles);
+vector<Circle> circleMotion(vector<Circle> circles, bool immunity, double infection_chance, double average_recovery);
+vector<Circle> circleCollision(vector<Circle> circles, bool immunity, double infection_chance, double average_recovery);
 void drawCircles(vector<Circle> circles, int shaderProgram);
 
 //Source code for the vertex shader. This program is written for OpenGL and describes how to transform the vertex data to put it on the screen
@@ -160,6 +157,14 @@ int main()
 
 	//Generate array of circles
 	vector<Circle> circles = generateCircles();
+
+	//Sets virus parameters
+	//Whether the population is capable of being reinfected by the disease
+	bool immunity = true;
+	//Chance for a susceptible circle to be infected by an infected circle
+	double infection_chance = 1.0;
+	//Amount of time (in some unit, who knows) for a circle to recover
+	double average_recovery = 5.0;
 	
 	//Saves the time for framerate comparisons
 	double time_at_beginning_of_previous_frame = glfwGetTime();
@@ -179,7 +184,7 @@ int main()
 		processInput(window);
 
 		//Processes the movement of the circle
-		circles=circleMotion(circles);
+		circles=circleMotion(circles, immunity, infection_chance, average_recovery);
 
 		//Clears and resizes the window appropriately
 		drawInSquareViewport(window);
@@ -339,7 +344,7 @@ vector<Circle> createCircles(int amount, int VAO)
 	}
 
 	//Check for circle overlap before the program starts
-	result = circleCollision(result);
+	result = circleCollision(result, false, 0.0, 0.0);
 
 	color[2] = 0.0;
 	color[0] = 1.0;
@@ -350,9 +355,9 @@ vector<Circle> createCircles(int amount, int VAO)
 	return result;
 }
 
-vector<Circle> circleMotion(vector<Circle> circles)
+vector<Circle> circleMotion(vector<Circle> circles, bool immunity, double infection_chance, double average_recovery)
 {
-	circles=circleCollision(circles);
+	circles=circleCollision(circles, immunity, infection_chance, average_recovery);
 
 	vector<double> position;
 	vector<double> velocity;
@@ -369,7 +374,7 @@ vector<Circle> circleMotion(vector<Circle> circles)
 	return circles;
 }
 
-vector<Circle> circleCollision(vector<Circle> circles)
+vector<Circle> circleCollision(vector<Circle> circles, bool immunity, double infection_chance, double average_recovery)
 {
 	vector<double> position(2);
 	vector<double> distance(2);
@@ -439,8 +444,8 @@ vector<Circle> circleCollision(vector<Circle> circles)
 
 				//Check for infection transmission
 				if ((circles[circle].getColor()[0] + circles[other_circle].getColor()[0] == 1.0)) {
-					if (rand() / max < INFECTION_CHANCE) {
-						if (IMMUNITY) {
+					if (rand() / max < infection_chance) {
+						if (immunity) {
 							//No chance of reinfection
 							if (circles[circle].getColor() != green) {
 								circles[circle].setColor(red);
@@ -483,7 +488,7 @@ vector<Circle> circleCollision(vector<Circle> circles)
 		circles[circle].setVelocity(velocity);
 
 		//Check for recovered
-		if ((circles[circle].getColor() == red) && rand() / max < 1 / (AVG_RECOVERY * FRAMERATE)) {
+		if ((circles[circle].getColor() == red) && rand() / max < 1 / (average_recovery * FRAMERATE)) {
 			circles[circle].setColor(green);
 		}
 
