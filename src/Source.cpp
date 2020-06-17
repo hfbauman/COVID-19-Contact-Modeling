@@ -26,11 +26,11 @@ using namespace std;
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow* window);
 void drawInSquareViewport(GLFWwindow* window);
-vector<Circle> generateCircles();
-vector<Circle> createCircles(int amount, int VAO);
-vector<Circle> circleMotion(vector<Circle> circles, bool immunity, float infection_chance, float average_recovery);
-vector<Circle> circleCollision(vector<Circle> circles, bool immunity, float infection_chance, float average_recovery);
-void drawCircles(vector<Circle> circles, int shaderProgram);
+void generateCircles(vector<Circle> &circles);
+void createCircles(vector<Circle> &circles, int VAO);
+void circleMotion(vector<Circle> &circles, bool immunity, float infection_chance, float average_recovery);
+void circleCollision(vector<Circle> &circles, bool immunity, float infection_chance, float average_recovery);
+void drawCircles(vector<Circle> &circles, int shaderProgram);
 
 //Sets program parameters
 #define PI 3.14159265358979323846
@@ -52,11 +52,7 @@ float infection_chance = 1.0;
 //Amount of time (in some unit, who knows) for a circle to recover
 float average_recovery = 5.0;
 
-//Saves the time for framerate comparisons
-double time_at_beginning_of_previous_frame = glfwGetTime();
 
-bool simulationRunning = false;
-bool settingUpSim = true;
 
 //Source code for the vertex shader. This program is written for OpenGL and describes how to transform the vertex data to put it on the screen
 const char *vertexShaderSource = "#version 330 core\n"
@@ -195,7 +191,14 @@ int main()
 	}
 
 	//Generate array of circles
-	vector<Circle> circles = generateCircles();
+	vector<Circle> *circles = new vector<Circle>(num_circles);
+	generateCircles(*circles);
+
+	//Saves the time for framerate comparisons
+	double time_at_beginning_of_previous_frame = glfwGetTime();
+
+	bool simulationRunning = false;
+	bool settingUpSim = true;
 
 
 	//Event loop. This contains what the program should do every frame.
@@ -215,7 +218,7 @@ int main()
 			processInput(window);
 
 			//Processes the movement of the circle
-			circles = circleMotion(circles,immunity,infection_chance,average_recovery);
+			circleMotion(*circles,immunity,infection_chance,average_recovery);
 
 		}
 		//Clears and resizes the window appropriately
@@ -226,7 +229,7 @@ int main()
 			//Tells OpenGL to use the shaders that we custom made
 			glUseProgram(shaderProgram);
 
-			drawCircles(circles, shaderProgram);
+			drawCircles(*circles, shaderProgram);
 		}
 
 		//imgui information
@@ -252,7 +255,7 @@ int main()
 
 				//A button to restart the simulation with new randomly generated circles, positions, and velocities
 				if (ImGui::Button("Restart")) {
-					circles = generateCircles();
+					generateCircles(*circles);
 				}
 
 				//A checkbox for the immunity boolean
@@ -260,7 +263,9 @@ int main()
 				
 				//Allows the user to change the number of circles in realtime
 				if (ImGui::InputInt("Number of Circles/People", &num_circles, 1, 100, ImGuiInputTextFlags_AutoSelectAll)) {
-					circles = generateCircles();
+					delete(circles);
+					circles = new vector<Circle>(num_circles);
+					generateCircles(*circles);
 					simulationRunning = false;
 				}
 
@@ -287,15 +292,19 @@ int main()
 		glfwPollEvents();
 	}
 
-	// Cleanup
+	//Clean up nicely after ourselves, once everything is done.
+
+	// imgui cleanup
 	ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();
 
+	//Glfw cleanup
 	glfwDestroyWindow(window);
-
-	//Clean up nicely after ourselves, once everything is done.
 	glfwTerminate();
+
+	//Variable cleanup
+	delete(circles);
 	return 0;
 }
 
@@ -351,7 +360,7 @@ void drawInSquareViewport(GLFWwindow *window)
 
 }
 
-vector<Circle> generateCircles()
+void generateCircles(vector<Circle> &circles)
 {
 	//Defines the vertex data that I'd like to use using vector objects
 	vector<double> circle((NUM_CIRCLE_VERTICES + 2) * 3);
@@ -396,14 +405,11 @@ vector<Circle> generateCircles()
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 
-	vector<Circle> result=createCircles(num_circles, VAO);
-
-	return result;
+	createCircles(circles, VAO);
 }
 
-vector<Circle> createCircles(int amount, int VAO)
+void createCircles(vector<Circle> &circles, int VAO)
 {
-	vector<Circle> result(amount);
 	vector<double> position(2);
 	vector<double> velocity(2);
 	vector<float> color(3);
@@ -415,14 +421,14 @@ vector<Circle> createCircles(int amount, int VAO)
 	//Make the uninfected color blue
 	color[2] = 1.0;
 
-	for (int i = 0;i < result.size();i++) {
+	for (int i = 0;i < circles.size();i++) {
 
 		//Calculate random position
 		position[0] = (rand() / max) * 2 - 1;
 		position[1] = (rand() / max) * 2 - 1;
 
 		//Create circle object
-		result[i] = Circle(position, CIRCLE_RADIUS, VAO);
+		circles[i] = Circle(position, CIRCLE_RADIUS, VAO);
 
 		//Calculate random velocity angle
 		angle = (rand() / max) * 2 * PI;
@@ -432,27 +438,25 @@ vector<Circle> createCircles(int amount, int VAO)
 		velocity[1] = sin(angle);
 
 		//Set velocity result
-		result[i].setVelocity(velocity);
+		circles[i].setVelocity(velocity);
 
 		//Set color to be uninfected;
-		result[i].setColor(color);
+		circles[i].setColor(color);
 	}
 
 	//Check for circle overlap before the program starts
-	result = circleCollision(result, false, 0.0, 0.0);
+	circleCollision(circles, false, 0.0, 0.0);
 
 	color[2] = 0.0;
 	color[0] = 1.0;
 
 	//Start an infection. Note that I've done this after the collision detection has already run once, so that any circles that were initially overlapping don't infect each other
-	result[0].setColor(color);
-
-	return result;
+	circles[0].setColor(color);
 }
 
-vector<Circle> circleMotion(vector<Circle> circles, bool immunity, float infection_chance, float average_recovery)
+void circleMotion(vector<Circle> &circles, bool immunity, float infection_chance, float average_recovery)
 {
-	circles=circleCollision(circles, immunity, infection_chance, average_recovery);
+	circleCollision(circles, immunity, infection_chance, average_recovery);
 
 	vector<double> position;
 	vector<double> velocity;
@@ -465,11 +469,9 @@ vector<Circle> circleMotion(vector<Circle> circles, bool immunity, float infecti
 
 		circles[circle].setPosition(position);
 	}
-
-	return circles;
 }
 
-vector<Circle> circleCollision(vector<Circle> circles, bool immunity, float infection_chance, float average_recovery)
+void circleCollision(vector<Circle> &circles, bool immunity, float infection_chance, float average_recovery)
 {
 	vector<double> position(2);
 	vector<double> distance(2);
@@ -588,11 +590,9 @@ vector<Circle> circleCollision(vector<Circle> circles, bool immunity, float infe
 		}
 
 	}
-
-	return circles;
 }
 
-void drawCircles(vector<Circle> circles, int shaderProgram) {
+void drawCircles(vector<Circle> &circles, int shaderProgram) {
 	//Generate the model matrix for movement around the screen (i.e. the coordinates of where my object origin should reside)
 	//Initialize to the identity matrix to be modified by later object calls
 	float model_matrix[4][4];
