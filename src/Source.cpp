@@ -38,10 +38,11 @@ void drawCircles(vector<Circle> circles, int shaderProgram);
 #define WINDOW_HEIGHT 600
 #define NUM_CIRCLE_VERTICES 100
 #define CIRCLE_RADIUS 0.05
+#define CIRCLE_SPEED 0.01
 #define FRAMERATE 60
 
 int num_circles = 30;
-float circle_speed = 1;
+float sim_speed = 1;
 
 //Sets virus parameters
 //Whether the population is capable of being reinfected by the disease
@@ -270,7 +271,7 @@ int main()
 				ImGui::SliderFloat("Recovery Time", &average_recovery, 0.0f, 20.0f);
 
 				//A slider for the simulation speed. Bounds are between 0.0 and 5.0
-				ImGui::SliderFloat("Simulation Speed", &circle_speed, 0.0f, 5.0f);
+				ImGui::SliderFloat("Simulation Speed", &sim_speed, 0.0f, 5.0f);
 				ImGui::End();
 			}
 
@@ -459,8 +460,8 @@ vector<Circle> circleMotion(vector<Circle> circles, bool immunity, float infecti
 	for (int circle = 0;circle < circles.size();circle++) {
 		position = circles[circle].getPosition();
 		velocity = circles[circle].getVelocity();
-		position[0] = position[0] + velocity[0]*circle_speed/100;
-		position[1] = position[1] + velocity[1]*circle_speed/100;
+		position[0] = position[0] + velocity[0] * sim_speed * CIRCLE_SPEED;
+		position[1] = position[1] + velocity[1] * sim_speed * CIRCLE_SPEED;
 
 		circles[circle].setPosition(position);
 	}
@@ -582,7 +583,7 @@ vector<Circle> circleCollision(vector<Circle> circles, bool immunity, float infe
 		circles[circle].setVelocity(velocity);
 
 		//Check for recovered
-		if ((circles[circle].getColor() == red) && rand() / max < 1 / (average_recovery * FRAMERATE)) {
+		if ((circles[circle].getColor() == red) && rand() / max < 1 / (average_recovery * FRAMERATE) * sim_speed) {
 			circles[circle].setColor(green);
 		}
 
