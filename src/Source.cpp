@@ -37,10 +37,10 @@ void drawCircles(vector<Circle> circles, int shaderProgram);
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
 #define NUM_CIRCLE_VERTICES 100
-#define NUM_CIRCLES 30
 #define CIRCLE_RADIUS 0.05
 #define FRAMERATE 60
 
+int num_circles = 30;
 float circle_speed = 1;
 
 //Sets virus parameters
@@ -248,10 +248,29 @@ int main()
 					if (settingUpSim)
 						settingUpSim = false;
 				}
+
+				//A button to restart the simulation with new randomly generated circles, positions, and velocities
+				if (ImGui::Button("Restart")) {
+					circles = generateCircles();
+				}
+
+				//A checkbox for the immunity boolean
 				ImGui::Checkbox("Immunity", &immunity);
+				
+				//Allows the user to change the number of circles in realtime
+				if (ImGui::InputInt("Number of Circles/People", &num_circles, 1, 100, ImGuiInputTextFlags_AutoSelectAll)) {
+					circles = generateCircles();
+					simulationRunning = false;
+				}
+
+				//A slider for the infection chance variable. Bounds are from 0.0 to 1.0
 				ImGui::SliderFloat("Infection Chance", &infection_chance, 0.0f, 1.0f);
+
+				//A slider for the recovery time variable. Bounds are from 0.0 to 20.0
 				ImGui::SliderFloat("Recovery Time", &average_recovery, 0.0f, 20.0f);
-				ImGui::SliderFloat("Simulation Speed", &circle_speed, 0.0f, 10.0f);
+
+				//A slider for the simulation speed. Bounds are between 0.0 and 5.0
+				ImGui::SliderFloat("Simulation Speed", &circle_speed, 0.0f, 5.0f);
 				ImGui::End();
 			}
 
@@ -376,7 +395,7 @@ vector<Circle> generateCircles()
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 
-	vector<Circle> result=createCircles(NUM_CIRCLES, VAO);
+	vector<Circle> result=createCircles(num_circles, VAO);
 
 	return result;
 }
