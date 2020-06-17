@@ -74,6 +74,7 @@ const char *fragmentShaderSource = "#version 330 core\n"
     "   FragColor = fs_in.color;\n"
 	"}\0";
 
+
 int main()
 {
 	//Intialize GLFW (our window and graphics control interface)
@@ -159,6 +160,23 @@ int main()
 	//Since the shaders have been built into a program, we can now delete them
 	glDeleteShader(vertexShader);
 	glDeleteShader(fragmentShader);
+
+	//initialize IMGUI
+	{
+		// Setup Dear ImGui context
+		IMGUI_CHECKVERSION();
+		ImGui::CreateContext();
+		ImGuiIO& io = ImGui::GetIO(); (void)io;
+
+		// Setup Dear ImGui style
+		ImGui::StyleColorsDark();
+		//ImGui::StyleColorsClassic();
+
+		// Setup Platform/Renderer bindings
+		ImGui_ImplGlfw_InitForOpenGL(window, true);
+
+		ImGui_ImplOpenGL3_Init("#version 330");
+	}
 
 	//Generate array of circles
 	vector<Circle> circles = generateCircles();
