@@ -22,25 +22,40 @@
 
 using namespace std;
 
-//Compile-time replacements:
-#define PI 3.14159265358979323846
-#define WINDOW_WIDTH 800
-#define WINDOW_HEIGHT 600
-#define NUM_CIRCLE_VERTICES 100
-#define NUM_CIRCLES 30
-#define CIRCLE_RADIUS 0.05
-#define CIRCLE_SPEED 0.01
-#define FRAMERATE 60
-
 //Tells VS that these will be functions that I will define at some point in the future
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow* window);
 void drawInSquareViewport(GLFWwindow* window);
 vector<Circle> generateCircles();
 vector<Circle> createCircles(int amount, int VAO);
-vector<Circle> circleMotion(vector<Circle> circles, bool immunity, double infection_chance, double average_recovery);
-vector<Circle> circleCollision(vector<Circle> circles, bool immunity, double infection_chance, double average_recovery);
+vector<Circle> circleMotion(vector<Circle> circles, bool immunity, float infection_chance, float average_recovery);
+vector<Circle> circleCollision(vector<Circle> circles, bool immunity, float infection_chance, float average_recovery);
 void drawCircles(vector<Circle> circles, int shaderProgram);
+
+//Sets program parameters
+#define PI 3.14159265358979323846
+#define WINDOW_WIDTH 800
+#define WINDOW_HEIGHT 600
+#define NUM_CIRCLE_VERTICES 100
+#define NUM_CIRCLES 30
+#define CIRCLE_RADIUS 0.05
+#define FRAMERATE 60
+
+float circle_speed = 1;
+
+//Sets virus parameters
+//Whether the population is capable of being reinfected by the disease
+bool immunity = true;
+//Chance for a susceptible circle to be infected by an infected circle
+float infection_chance = 1.0;
+//Amount of time (in some unit, who knows) for a circle to recover
+float average_recovery = 5.0;
+
+//Saves the time for framerate comparisons
+double time_at_beginning_of_previous_frame = glfwGetTime();
+
+bool simulationRunning = false;
+bool settingUpSim = true;
 
 //Source code for the vertex shader. This program is written for OpenGL and describes how to transform the vertex data to put it on the screen
 const char *vertexShaderSource = "#version 330 core\n"
@@ -181,46 +196,83 @@ int main()
 	//Generate array of circles
 	vector<Circle> circles = generateCircles();
 
-	//Sets virus parameters
-	//Whether the population is capable of being reinfected by the disease
-	bool immunity = true;
-	//Chance for a susceptible circle to be infected by an infected circle
-	double infection_chance = 1.0;
-	//Amount of time (in some unit, who knows) for a circle to recover
-	double average_recovery = 5.0;
-	
-	//Saves the time for framerate comparisons
-	double time_at_beginning_of_previous_frame = glfwGetTime();
 
 	//Event loop. This contains what the program should do every frame.
 	while (!glfwWindowShouldClose(window))
 	{
-		//Checks to see if enough time has passed to bother rendering another frame
-		if (glfwGetTime() < time_at_beginning_of_previous_frame + 1.0 / FRAMERATE)
+		if (simulationRunning)
 		{
-			continue;
+			//Checks to see if enough time has passed to bother rendering another frame
+			if (glfwGetTime() < time_at_beginning_of_previous_frame + 1.0 / FRAMERATE)
+			{
+				continue;
+			}
+			//Saves the current time to reference on the next iterations of the loop
+			time_at_beginning_of_previous_frame = glfwGetTime();
+
+			//Processes any input that has happened since the last frame
+			processInput(window);
+
+			//Processes the movement of the circle
+			circles = circleMotion(circles,immunity,infection_chance,average_recovery);
+
 		}
-		//Saves the current time to reference on the next iterations of the loop
-		time_at_beginning_of_previous_frame = glfwGetTime();
-
-		//Processes any input that has happened since the last frame
-		processInput(window);
-
-		//Processes the movement of the circle
-		circles=circleMotion(circles, immunity, infection_chance, average_recovery);
-
 		//Clears and resizes the window appropriately
 		drawInSquareViewport(window);
+		if (!settingUpSim)
+		{
 
-		//Tells OpenGL to use the shaders that we custom made
-		glUseProgram(shaderProgram);
+			//Tells OpenGL to use the shaders that we custom made
+			glUseProgram(shaderProgram);
 
-		drawCircles(circles,shaderProgram);
+			drawCircles(circles, shaderProgram);
+		}
+
+		//imgui information
+		{
+
+			// Start the Dear ImGui frame
+			ImGui_ImplOpenGL3_NewFrame();
+			ImGui_ImplGlfw_NewFrame();
+			ImGui::NewFrame();
+
+			//The dragable window that will contain options
+			ImGui::Begin("Simulation Control");
+			{
+				//This reads as:
+				//If this button is clicked, switch the simulation running variable and set setting up sim to false.
+				//The expression in parenthesis of the ImGui::Button says "If the simulationRunning variable is true, display Pause, else display Start"
+				if (ImGui::Button(simulationRunning ? "Pause" : "Start"))
+				{
+					simulationRunning = !simulationRunning;
+					if (settingUpSim)
+						settingUpSim = false;
+				}
+				ImGui::Checkbox("Immunity", &immunity);
+				ImGui::SliderFloat("Infection Chance", &infection_chance, 0.0f, 1.0f);
+				ImGui::SliderFloat("Recovery Time", &average_recovery, 0.0f, 20.0f);
+				ImGui::SliderFloat("Simulation Speed", &circle_speed, 0.0f, 10.0f);
+				ImGui::End();
+			}
+
+			// Rendering
+			ImGui::Render();
+			ImGuiIO& io = ImGui::GetIO();
+			glViewport(0, 0, (GLsizei)io.DisplaySize.x, (GLsizei)io.DisplaySize.y);
+			ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+		}
 
 		//Finished with rendering, display the image on the screen.
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
+
+	// Cleanup
+	ImGui_ImplOpenGL3_Shutdown();
+	ImGui_ImplGlfw_Shutdown();
+	ImGui::DestroyContext();
+
+	glfwDestroyWindow(window);
 
 	//Clean up nicely after ourselves, once everything is done.
 	glfwTerminate();
@@ -378,7 +430,7 @@ vector<Circle> createCircles(int amount, int VAO)
 	return result;
 }
 
-vector<Circle> circleMotion(vector<Circle> circles, bool immunity, double infection_chance, double average_recovery)
+vector<Circle> circleMotion(vector<Circle> circles, bool immunity, float infection_chance, float average_recovery)
 {
 	circles=circleCollision(circles, immunity, infection_chance, average_recovery);
 
@@ -388,8 +440,8 @@ vector<Circle> circleMotion(vector<Circle> circles, bool immunity, double infect
 	for (int circle = 0;circle < circles.size();circle++) {
 		position = circles[circle].getPosition();
 		velocity = circles[circle].getVelocity();
-		position[0] = position[0] + velocity[0]*CIRCLE_SPEED;
-		position[1] = position[1] + velocity[1]*CIRCLE_SPEED;
+		position[0] = position[0] + velocity[0]*circle_speed/100;
+		position[1] = position[1] + velocity[1]*circle_speed/100;
 
 		circles[circle].setPosition(position);
 	}
@@ -397,7 +449,7 @@ vector<Circle> circleMotion(vector<Circle> circles, bool immunity, double infect
 	return circles;
 }
 
-vector<Circle> circleCollision(vector<Circle> circles, bool immunity, double infection_chance, double average_recovery)
+vector<Circle> circleCollision(vector<Circle> circles, bool immunity, float infection_chance, float average_recovery)
 {
 	vector<double> position(2);
 	vector<double> distance(2);
